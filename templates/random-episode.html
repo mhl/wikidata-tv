@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h1>Your random episode of {{ episode.series_name }} is ...</h1>
+
+<h2>{{ episode.name }}</h2>
+
+<h3>from season {{ episode.season_number}}</h3>
+
+<form action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
+  <input type="submit" value="Nah, give me another random episode">
+</form>
+
+<p>This episode was picked from {{ all_episodes|length }}
+episodes we found of {{ episode.series_name }}.</p>
+
+<h1>Data quality issues</h1>
+
+{% if report_items %}
+  {% include 'problem-report.html' %}
+{% else %}
+  No issues found at the season level, but check the table below
+  for missing data.
+{% endif %}
+
+<h1>Episodes considered</h1>
+
+<table class="table">
+  <thead>
+  <tr>
+    <th>Name</th>
+    <th>Item</th>
+    <th>Number</th>
+    <th>Production Code</th>
+  </tr>
+  </thead>
+  <tbody>
+{% for season_tuple, episodes in episodes_table_data %}
+  <tr>
+    <th colspan="4">Season {{ '[Missing P1545 (series ordinal) qualifier]' if season_tuple[1] is none else season_tuple[1] }} <a href="https://www.wikidata.org/wiki/{{ season_tuple[0] }}">{{ season_tuple[0] }}</a> {% if season_tuple[2] %}— {{ season_tuple[2] }}{% endif %}</a></th>
+  </tr>
+  {% for episode_data in episodes %}
+    <tr>
+      <td>{{ episode_data.name }}</td>
+      <td><a href="https://www.wikidata.org/wiki/{{ episode_data.item }}">{{ episode_data.item }}</a></td>
+      <td>{{ episode_data.episode_number if episode_data.episode_number else '[Missing]' }}</td>
+      <td>{{ episode_data.production_code if episode_data.production_code else '' }}</td>
+    </tr>
+  {% endfor %}
+{% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h1>Suggest a random episode to watch!</h1>
+
+<ul>
+  {% for series_item, series_name in examples %}
+    <li><a href="{{ url_for('random_episode', wikidata_item=series_item) }}">{{ series_name }} ({{ series_item }})</a></li>
+  {% endfor %}
+</ul>
+
+
+{% endblock %}

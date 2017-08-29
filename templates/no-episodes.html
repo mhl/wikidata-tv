@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<p>
+  No episodes were found for <a href="https://www.wikidata.org/wiki/{{ series_item }}">{{ series_item }}</a>. (You can also view
+  {{ series_item }}
+  on <a href="https://tools.wmflabs.org/reasonator/?q={{ series_item }}">Reasonator</a>
+  or <a href="https://tools.wmflabs.org/sqid/#/view?id={{ series_item}}">Squid</a>.)
+</p>
+
+<p>Here's an in-depth problem report - you can help to fix these things in Wikidata!</p>
+
+{% include 'problem-report.html' %}
+
+{% endblock %}

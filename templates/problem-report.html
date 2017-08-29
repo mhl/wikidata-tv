@@ -1,0 +1,15 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th>Description</th><th>Result</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for result, description in report_items %}
+      <tr>
+        <td>{{ description }}</td>
+        <td>{% if result %}✔{% else %}✘{% endif %}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

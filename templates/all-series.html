@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<ul>
+{% for item, label in items_with_labels %}
+  <li><a href="{{ url_for('random_episode', wikidata_item=item) }}">{{ label }}</a></li>
+{% endfor %}
+</ul>
+{% endblock %}
