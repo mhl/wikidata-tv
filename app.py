@@ -94,7 +94,7 @@ def problem_report(episodes):
                     report_items.append(
                         (
                             False,
-                            "The number of episodes actually found in season {season_item} ({n_found}) was different from the number of episodes suggested by the 'number of episodes' (P1113) statement {n_expected}".format(
+                            "The number of episodes actually found in season {season_item} ({n_found}) was different from the number of episodes suggested by the 'number of episodes' (P1113) statement ({n_expected})".format(
                                 season_item=season_item,
                                 n_found=n_episodes_found,
                                 n_expected=arbitrary_episode.episodes_in_season)
