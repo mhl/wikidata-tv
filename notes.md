@@ -14,6 +14,7 @@
 * Link to SPARQL queries for each problem report
 * Episode numbers
     * Find out about the intended use of episode number
+        * Done here: https://www.wikidata.org/wiki/Property_talk:P1545#Differences_in_usage_for_television_episodes
     * Add a check for episode number being present
 
 ## Useful resources
