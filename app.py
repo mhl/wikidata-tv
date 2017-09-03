@@ -70,6 +70,7 @@ def parse_episodes(result_bindings):
     all_episodes = [Episode(b) for b in result_bindings]
     return all_episodes
 
+
 def group_and_order_episodes(episodes):
     return groupby(episodes, lambda e: (e.season_item, e.season_number, e.season_label))
 
