@@ -114,6 +114,17 @@ def problem_report(episodes):
                     'There were no episodes at all found in season {season_item}!'.format(season_item=season_item)
                 )
             )
+    episodes_without_an_episode_number = [
+        episode for episode in episodes
+        if not episode.episode_number
+    ]
+    if len(episodes_without_an_episode_number):
+        report_items.append(
+            (
+                False,
+                "{n} episodes were missing an episode number, which should be specified as a 'series ordinal' (P1545) qualifier to the 'series' (P179) statement linking the episode to the series".format(n=len(episodes_without_an_episode_number))
+            )
+        )
     return report_items
 
 def problem_report_extra_queries(sparql, series_item):
