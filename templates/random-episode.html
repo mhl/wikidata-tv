@@ -1,20 +1,31 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<h1>Your random episode of {{ episode.series_name }} is ...</h1>
+<div>Episode lists from <a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a> for:</div>
 
-<h2>{{ episode.name }}</h2>
+<h1 class="text-center mt-5 mb-5">“{{ episode.series_name }}”</h1>
 
-<h3>from season {{ episode.season_number}}</h3>
 
-<form action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
-  <input type="submit" value="Nah, give me another random episode">
-</form>
+<div class="random-episode text-center">
+
+<div>
+Your random episode of {{ episode.series_name }} is...
+</div>
+
+<div class="h2 mt-2 mb-2 display-4">{{ episode.name }}</div>
+
+<div class="h4">from season {{ episode.season_number }}</div>
 
 <p>This episode was picked from {{ all_episodes|length }}
 episodes we found of {{ episode.series_name }}.</p>
 
-<h1>Data quality issues</h1>
+</div>
+
+<form class="text-center mt-5 mb-5" action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
+  <input class="btn-lg btn-primary" type="submit" value="Nah, give me another random episode">
+</form>
+
+<h2>Data quality issues</h2>
 
 {% if report_items %}
   {% include 'problem-report.html' %}
@@ -23,7 +34,7 @@ episodes we found of {{ episode.series_name }}.</p>
   for missing data.
 {% endif %}
 
-<h1>Episodes considered</h1>
+<h2>Episodes considered</h2>
 
 <table class="table">
   <thead>
