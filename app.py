@@ -5,7 +5,7 @@ import cgi
 import random
 import re
 
-from flask import Flask, render_template, escape
+from flask import Flask, render_template
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON
 
