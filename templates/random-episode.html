@@ -5,6 +5,7 @@
 
 <h1 class="text-center mt-5 mb-5">“{{ episode.series_name }}”</h1>
 
+{% if show_random %}
 
 <div class="random-episode text-center">
 
@@ -24,6 +25,14 @@ episodes we found of {{ episode.series_name }}.</p>
 <form class="text-center mt-5 mb-5" action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
   <input class="btn-lg btn-primary" type="submit" value="Nah, give me another random episode">
 </form>
+
+{% else %}
+
+<form class="text-center mt-5 mb-5" action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
+  <input class="btn-lg btn-primary" type="submit" value="Suggest a random episode of {{ episode.series_name }}">
+</form>
+
+{% endif %}
 
 <h2>Data quality issues</h2>
 

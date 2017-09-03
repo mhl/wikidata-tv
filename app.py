@@ -5,7 +5,7 @@ import cgi
 import random
 import re
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -402,6 +402,7 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
     episode = random.choice(episodes)
     return render_template(
         'random-episode.html',
+        show_random=(request.method == 'POST'),
         episode=episode,
         all_episodes=episodes,
         report_items=linkify_report(problem_report(episodes)),
