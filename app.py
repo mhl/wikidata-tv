@@ -326,7 +326,7 @@ def all_series():
     # 'television series' (Q5398426).
     sparql.setQuery('''
 SELECT ?series ?seriesLabel WHERE {
-  ?series wdt:P31 wd:Q5398426
+  ?series wdt:P31/wdt:P279* wd:Q5398426
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en" } }
   # ORDER BY ?seriesLabel
 ''')
@@ -348,11 +348,11 @@ def random_episode(wikidata_item):
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
     sparql.setReturnFormat(JSON)
     # First check that the item we have actually is an instance of a
-    # 'television series' (Q5398426).
-    sparql.setQuery('ASK WHERE {{ wd:{0} wdt:P31 wd:Q5398426 }}'.format(wikidata_item))
+    # 'television series' (Q5398426)
+    sparql.setQuery('ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item))
     results = sparql.query().convert()
     if not results['boolean']:
-        return '{0} did not seem to be a television series (an instance of Q5398426)'.format(wikidata_item)
+        return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
     # Now get all episodes of that show:
     sparql.setQuery('''
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
