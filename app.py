@@ -2,12 +2,41 @@
 
 from itertools import groupby
 import cgi
+import json
+from os import environ
 import random
+import redis
 import re
 
 from flask import Flask, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON
+
+
+REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
+REDIS_HOST = environ.get('REDIS_HOST', 'localhost')
+
+
+QUERY_CACHE_EXPIRY = 3 * 60 # 3 minutes
+ALL_SERIES_CACHE_EXPIRY = 24 * 60 * 60 # 1 day
+
+
+def redis_key(key):
+    if not REDIS_PREFIX:
+        raise Exception('REDIS_PREFIX was not set in the environment')
+    return '{}:{}'.format(REDIS_PREFIX, key)
+
+
+def redis_set(redis_api, key, value, expires=None):
+    redis_api.set(redis_key(key), value, ex=expires)
+
+
+def redis_get(redis_api, key):
+    return redis_api.get(redis_key(key))
+
+
+redis_api = redis.StrictRedis(host=REDIS_HOST, port=6379, db=0)
+
 
 app = Flask(__name__)
 
@@ -128,17 +157,17 @@ def problem_report(episodes):
         )
     return report_items
 
-def problem_report_extra_queries(sparql, series_item):
+def problem_report_extra_queries(series_item):
     report_items = []
     # First check if it has a number of seasons property:
-    sparql.setQuery('''
+    results = cached_run_query('''
 SELECT ?numberOfSeasons WHERE {{
   wd:{0} wdt:P2437 ?numberOfSeasons
 }}
     '''.format(series_item))
     values = [
         b['numberOfSeasons']['value'] for b in
-        sparql.query().convert()['results']['bindings']
+        results['results']['bindings']
     ]
     values_len = len(values)
     if values_len > 1:
@@ -167,7 +196,7 @@ SELECT ?numberOfSeasons WHERE {{
          )
          number_of_seasons = None
     # Now find all the seasons, with option extra properties:
-    sparql.setQuery('''
+    results = cached_run_query('''
 SELECT ?season ?seasonNumber ?episodesInSeason WHERE {{
   ?season wdt:P31 wd:Q3464665 .
   ?season p:P179 ?seriesStatement .
@@ -181,10 +210,10 @@ SELECT ?season ?seasonNumber ?episodesInSeason WHERE {{
 }}
 ORDER BY xsd:integer(?seasonNumber)
     '''.format(series_item))
-    
+
     values = [
         {k: v['value'] for k, v in b.items()}
-        for b in sparql.query().convert()['results']['bindings']
+        for b in results['results']['bindings']
     ]
     if number_of_seasons is not None:
         if number_of_seasons == len(values):
@@ -228,7 +257,7 @@ ORDER BY xsd:integer(?seasonNumber)
                 )
             )
     all_seasons = ['wd:' + id_from_item_url(season['season']) for season in values]
-    query = '''
+    results = cached_run_query('''
 SELECT ?episode ?season ?seasonNumber ?episodeNumber WHERE {{
   ?episode wdt:P361 ?season
   OPTIONAL {{
@@ -245,11 +274,10 @@ ORDER BY ?seasonNumber ?episodeNumber
     '''.format(
         series_item=series_item,
         seasons=' '.join(all_seasons)
-    )
-    sparql.setQuery(query)
+    ))
     values = [
         {k: v['value'] for k, v in b.items()}
-        for b in sparql.query().convert()['results']['bindings']
+        for b in results['results']['bindings']
     ]
     if values:
         # Group these episodes by season so we can compare the counts:
@@ -318,12 +346,28 @@ def homepage():
     )
 
 
-@app.route('/series/')
-def all_series():
+def slow_run_query(query):
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
     sparql.setReturnFormat(JSON)
-    # First check that the item we have actually is an instance of a
-    # 'television series' (Q5398426).
+    sparql.setQuery(query)
+    return sparql.query().convert()
+
+
+def cached_run_query(query, expire=False):
+    normalized_query = re.sub(r'\s+', ' ', query).strip()
+    key = 'query:{}'.format(normalized_query)
+    cached = redis_get(redis_api, key)
+    if cached is None or expire:
+        result = slow_run_query(normalized_query)
+        redis_set(redis_api, key, json.dumps(result), QUERY_CACHE_EXPIRY)
+    else:
+        result = json.loads(cached)
+    return result
+
+
+def slow_get_all_series():
+    sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
+    sparql.setReturnFormat(JSON)
     sparql.setQuery('''
 SELECT ?series ?seriesLabel WHERE {
   ?series wdt:P31/wdt:P279* wd:Q5398426
@@ -331,30 +375,45 @@ SELECT ?series ?seriesLabel WHERE {
   # ORDER BY ?seriesLabel
 ''')
     results = sparql.query().convert()
-    items_with_labels = [
+    return sorted(
         (
-            id_from_item_url(r['series']['value']),
-            r['seriesLabel']['value']
-        )
-        for r in results['results']['bindings']
-    ]
+            (
+                id_from_item_url(r['series']['value']),
+                r['seriesLabel']['value']
+            )
+            for r in results['results']['bindings']
+            if not re.match('^Q\d+$', r['seriesLabel']['value'])
+        ),
+        key=lambda t: t[1]
+    )
+
+
+def cached_get_all_series():
+    cached = redis_get(redis_api, 'all-series')
+    if cached is None:
+        result = slow_get_all_series()
+        redis_set(redis_api, 'all-series', json.dumps(result), ALL_SERIES_CACHE_EXPIRY)
+    else:
+        result = json.loads(cached)
+    return result
+
+
+@app.route('/series/')
+def all_series():
     return render_template(
         'all-series.html',
-        items_with_labels=items_with_labels)
+        items_with_labels=cached_get_all_series())
 
 
 @app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
 def random_episode(wikidata_item):
-    sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
-    sparql.setReturnFormat(JSON)
     # First check that the item we have actually is an instance of a
     # 'television series' (Q5398426)
-    sparql.setQuery('ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item))
-    results = sparql.query().convert()
+    results = cached_run_query('ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item))
     if not results['boolean']:
         return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
     # Now get all episodes of that show:
-    sparql.setQuery('''
+    results = cached_run_query('''
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{0} as ?series) .
   ?episode wdt:P361 ?season .
@@ -390,10 +449,9 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
     ORDER BY xsd:integer(?seasonNumber) xsd:integer(?episodeNumber) ?productionCode'''.format(
         wikidata_item
     ))
-    results = sparql.query().convert()
     episodes = parse_episodes(results['results']['bindings'])
     if not episodes:
-        report_items = problem_report_extra_queries(sparql, wikidata_item)
+        report_items = problem_report_extra_queries(wikidata_item)
         report_items = linkify_report(report_items)
         return render_template(
             'no-episodes.html',
