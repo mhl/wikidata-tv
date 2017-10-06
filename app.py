@@ -157,14 +157,14 @@ def problem_report(episodes):
         )
     return report_items
 
-def problem_report_extra_queries(series_item):
+def problem_report_extra_queries(series_item, purge_cache):
     report_items = []
     # First check if it has a number of seasons property:
     results = cached_run_query('''
 SELECT ?numberOfSeasons WHERE {{
   wd:{0} wdt:P2437 ?numberOfSeasons
 }}
-    '''.format(series_item))
+    '''.format(series_item), purge_cache)
     values = [
         b['numberOfSeasons']['value'] for b in
         results['results']['bindings']
@@ -209,7 +209,7 @@ SELECT ?season ?seasonNumber ?episodesInSeason WHERE {{
   }}
 }}
 ORDER BY xsd:integer(?seasonNumber)
-    '''.format(series_item))
+    '''.format(series_item), purge_cache)
 
     values = [
         {k: v['value'] for k, v in b.items()}
@@ -274,7 +274,7 @@ ORDER BY ?seasonNumber ?episodeNumber
     '''.format(
         series_item=series_item,
         seasons=' '.join(all_seasons)
-    ))
+    ), purge_cache)
     values = [
         {k: v['value'] for k, v in b.items()}
         for b in results['results']['bindings']
@@ -353,11 +353,11 @@ def slow_run_query(query):
     return sparql.query().convert()
 
 
-def cached_run_query(query, expire=False):
+def cached_run_query(query, purge_cache=False):
     normalized_query = re.sub(r'\s+', ' ', query).strip()
     key = 'query:{}'.format(normalized_query)
     cached = redis_get(redis_api, key)
-    if cached is None or expire:
+    if cached is None or purge_cache:
         result = slow_run_query(normalized_query)
         redis_set(redis_api, key, json.dumps(result), QUERY_CACHE_EXPIRY)
     else:
@@ -407,9 +407,12 @@ def all_series():
 
 @app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
 def random_episode(wikidata_item):
+    purge_cache = (request.method == 'POST') and (request.form.get('purge') == 'yes')
     # First check that the item we have actually is an instance of a
     # 'television series' (Q5398426)
-    results = cached_run_query('ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item))
+    results = cached_run_query(
+        'ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item),
+        purge_cache)
     if not results['boolean']:
         return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
     # Now get all episodes of that show:
@@ -448,10 +451,10 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
 }}
     ORDER BY xsd:integer(?seasonNumber) xsd:integer(?episodeNumber) ?productionCode'''.format(
         wikidata_item
-    ))
+    ), purge_cache)
     episodes = parse_episodes(results['results']['bindings'])
     if not episodes:
-        report_items = problem_report_extra_queries(wikidata_item)
+        report_items = problem_report_extra_queries(wikidata_item, purge_cache)
         report_items = linkify_report(report_items)
         return render_template(
             'no-episodes.html',
