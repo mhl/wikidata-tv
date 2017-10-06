@@ -16,10 +16,10 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
 REDIS_HOST = environ.get('REDIS_HOST', 'localhost')
 
-
 QUERY_CACHE_EXPIRY = 3 * 60 # 3 minutes
 ALL_SERIES_CACHE_EXPIRY = 24 * 60 * 60 # 1 day
 
+GOOGLE_ANALYTICS_PROPERTY_ID = environ.get('GOOGLE_ANALYTICS_PROPERTY_ID', '')
 
 def redis_key(key):
     if not REDIS_PREFIX:
@@ -333,6 +333,7 @@ ORDER BY ?seasonNumber ?episodeNumber
 def homepage():
     return render_template(
         'homepage.html',
+        google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
         examples=[
             ('Q189350', '30 Rock'),
             ('Q13417244', 'Brookly Nine-Nine'),
@@ -402,6 +403,7 @@ def cached_get_all_series():
 def all_series():
     return render_template(
         'all-series.html',
+        google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
         items_with_labels=cached_get_all_series())
 
 
@@ -458,12 +460,14 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
         report_items = linkify_report(report_items)
         return render_template(
             'no-episodes.html',
+            google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
             report_items=report_items,
             series_item=wikidata_item)
     episodes_table_data = group_and_order_episodes(episodes)
     episode = random.choice(episodes)
     return render_template(
         'random-episode.html',
+        google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
         show_random=(request.method == 'POST'),
         episode=episode,
         all_episodes=episodes,
