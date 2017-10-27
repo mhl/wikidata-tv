@@ -1,2 +1,3 @@
 Flask==0.12.2
 SPARQLWrapper==1.8.0
+redis==2.10.6
