@@ -43,7 +43,7 @@ app = Flask(__name__)
 
 @app.before_request
 def before_request():
-    if 'ON_HEROKU' in environ and request.url.starswith('http://'):
+    if 'ON_HEROKU' in environ and request.url.startswith('http://'):
         new_url = request.url.replace('http://', 'https://', 1)
         return redirect(new_url, code=302)
 
