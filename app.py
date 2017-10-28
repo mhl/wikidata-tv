@@ -438,8 +438,8 @@ def random_episode(wikidata_item):
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{0} as ?series) .
   ?episode wdt:P361 ?season .
-  ?episode p:P179 ?episode_series .
-  ?episode_series ps:P179 ?seriesValue .
+  ?episode p:P179 ?episodePartOfSeriesStatement .
+  ?episodePartOfSeriesStatement ps:P179 ?seriesValue .
   ?seriesValue wdt:P31/wdt:P279* wd:Q5398426 .
   ?season wdt:P31 wd:Q3464665 .
   ?season p:P179 ?seriesStatement .
@@ -448,7 +448,7 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
     ?seriesStatement pq:P1545 ?seasonNumber .
   }}
   OPTIONAL {{
-    ?episode_series pq:P1545 ?episodeNumber
+    ?episodePartOfSeriesStatement pq:P1545 ?episodeNumber
   }}
   OPTIONAL {{
     ?episode wdt:P2364 ?productionCode
