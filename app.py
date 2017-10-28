@@ -337,6 +337,7 @@ def homepage():
         examples_of_various_quality=[
             ('Generally high quality data',
              [
+                 ('Q3577037', 'The West Wing'),
                  ('Q189350', '30 Rock'),
                  ('Q16290', 'Star Trek: TNG'),
                  ('Q2744', 'The X-Files'),
