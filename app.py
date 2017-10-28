@@ -352,7 +352,8 @@ def homepage():
                  ('Q11598', 'Arrested Development'),
                  ('Q5902', 'Red Dwarf'),
              ]),
-        ]
+        ],
+        title='Home',
     )
 
 @app.route('/about')
@@ -360,6 +361,7 @@ def about():
     return render_template(
         'about.html',
         google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
+        title='About this site',
     )
 
 def slow_run_query(query):
@@ -419,7 +421,9 @@ def all_series():
     return render_template(
         'all-series.html',
         google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
-        items_with_labels=cached_get_all_series())
+        items_with_labels=cached_get_all_series(),
+        title='List of all television series',
+    )
 
 
 @app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
@@ -489,6 +493,7 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
             series_item=wikidata_item,
             series_name=series_name,
             all_episodes_query=query,
+            title='No episodes found of {0}'.format(series_name),
         )
     episodes_table_data = group_and_order_episodes(episodes)
     episode = random.choice(episodes)
@@ -501,7 +506,8 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
         report_items=linkify_report(problem_report(episodes)),
         episodes_table_data=episodes_table_data,
         series_item=wikidata_item,
-        all_episodes_query=query
+        all_episodes_query=query,
+        title=episodes[0].series_name,
     )
 
 if __name__ == "__main__":
