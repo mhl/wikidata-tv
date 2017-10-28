@@ -8,7 +8,7 @@ import random
 import redis
 import re
 
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -39,6 +39,13 @@ redis_api = redis.StrictRedis.from_url(REDIS_URL, db=0)
 
 
 app = Flask(__name__)
+
+
+@app.before_request
+def before_request():
+    if 'ON_HEROKU' in environ and request.url.starswith('http://'):
+        new_url = request.url.replace('http://', 'https://', 1)
+        return redirect(new_url, code=302)
 
 
 def wikidata_linkify(s):
