@@ -438,6 +438,8 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
   BIND(wd:{0} as ?series) .
   ?episode wdt:P361 ?season .
   ?episode p:P179 ?episode_series .
+  ?episode_series ps:P179 ?seriesValue .
+  ?seriesValue wdt:P31/wdt:P279* wd:Q5398426 .
   ?season wdt:P31 wd:Q3464665 .
   ?season p:P179 ?seriesStatement .
   ?seriesStatement ps:P179 ?series .
