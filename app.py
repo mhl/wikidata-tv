@@ -434,7 +434,7 @@ def random_episode(wikidata_item):
     if not results['boolean']:
         return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
     # Now get all episodes of that show:
-    results = cached_run_query('''
+    query = '''
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{0} as ?series) .
   ?episode wdt:P361 ?season .
@@ -471,7 +471,8 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
 }}
     ORDER BY xsd:integer(?seasonNumber) xsd:integer(?episodeNumber) ?productionCode'''.format(
         wikidata_item
-    ), purge_cache)
+    )
+    results = cached_run_query(query, purge_cache)
     episodes = parse_episodes(results['results']['bindings'])
     if not episodes:
         report_items = problem_report_extra_queries(wikidata_item, purge_cache)
@@ -480,7 +481,9 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
             'no-episodes.html',
             google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
             report_items=report_items,
-            series_item=wikidata_item)
+            series_item=wikidata_item,
+            all_episodes_query=query,
+        )
     episodes_table_data = group_and_order_episodes(episodes)
     episode = random.choice(episodes)
     return render_template(
@@ -491,7 +494,9 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
         all_episodes=episodes,
         report_items=linkify_report(problem_report(episodes)),
         episodes_table_data=episodes_table_data,
-        series_item=wikidata_item)
+        series_item=wikidata_item,
+        all_episodes_query=query
+    )
 
 if __name__ == "__main__":
     app.run()
