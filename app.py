@@ -334,15 +334,24 @@ def homepage():
     return render_template(
         'homepage.html',
         google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
-        examples=[
-            ('Q189350', '30 Rock'),
-            ('Q13417244', 'Brooklyn Nine-Nine'),
-            ('Q16290', 'Star Trek: TNG'),
-            ('Q2085', 'Twin Peaks'),
-            ('Q2744', 'The X-Files'),
-            ('Q4380', "Don't Trust the B---- in Apartment 23"),
-            ('Q11598', 'Arrested Development'),
-            ('Q5902', 'Red Dwarf'),
+        examples_of_various_quality=[
+            ('Generally high quality data',
+             [
+                 ('Q189350', '30 Rock'),
+                 ('Q16290', 'Star Trek: TNG'),
+                 ('Q2744', 'The X-Files'),
+             ]),
+            ('Data that could be improved',
+             [
+                 ('Q2085', 'Twin Peaks'),
+             ]),
+            ('Low quality data - lots to do',
+             [
+                 ('Q13417244', 'Brooklyn Nine-Nine'),
+                 ('Q4380', "Don't Trust the B---- in Apartment 23"),
+                 ('Q11598', 'Arrested Development'),
+                 ('Q5902', 'Red Dwarf'),
+             ]),
         ]
     )
 

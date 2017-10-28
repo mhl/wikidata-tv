@@ -1,13 +1,31 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<h1>Suggest a random episode to watch!</h1>
+<h1>Suggest a random TV episode to watch!</h1>
 
-<ul>
-  {% for series_item, series_name in examples %}
-    <li><a href="{{ url_for('random_episode', wikidata_item=series_item) }}">{{ series_name }} ({{ series_item }})</a></li>
-  {% endfor %}
-</ul>
+<p>This site uses episode data from the
+  amazing <a href="">Wikidata</a> project to suggest a random
+  episode of a particular series you like to watch.</p>
 
+<p>For lots of series, unfortunately, the data in Wikidata isn't
+  good enough yet for this to work, but this site will suggest
+  ways in which you can edit Wikidata to improve this - both
+  helping this site and the world in general.</p>
+
+<p>If you're interested in learning about how to help out with
+the Wikidata project, you could start with
+the <a href="https://www.wikidata.org/wiki/Wikidata:Tours">Wikidata
+Tours</a></p>
+
+<h2>Examples</h2>
+
+{% for quality, examples in examples_of_various_quality %}
+  <h3>{{ quality }}</h3>
+  <ul>
+    {% for series_item, series_name in examples %}
+      <li><a href="{{ url_for('random_episode', wikidata_item=series_item) }}">{{ series_name }} ({{ series_item }})</a></li>
+    {% endfor %}
+  </ul>
+{% endfor %}
 
 {% endblock %}
