@@ -336,7 +336,7 @@ def homepage():
         google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
         examples=[
             ('Q189350', '30 Rock'),
-            ('Q13417244', 'Brookly Nine-Nine'),
+            ('Q13417244', 'Brooklyn Nine-Nine'),
             ('Q16290', 'Star Trek: TNG'),
             ('Q2085', 'Twin Peaks'),
             ('Q2744', 'The X-Files'),
