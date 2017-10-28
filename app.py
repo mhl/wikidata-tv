@@ -475,11 +475,19 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
     if not episodes:
         report_items = problem_report_extra_queries(wikidata_item, purge_cache)
         report_items = linkify_report(report_items)
+        # Get the name of the series so that we can make the page more readable:
+        results = cached_run_query(
+            '''SELECT ?seriesLabel WHERE {{
+  BIND(wd:{0} as ?series)
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
+            }}'''.format(wikidata_item), purge_cache)
+        series_name = results['results']['bindings'][0]['seriesLabel']['value']
         return render_template(
             'no-episodes.html',
             google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
             report_items=report_items,
             series_item=wikidata_item,
+            series_name=series_name,
             all_episodes_query=query,
         )
     episodes_table_data = group_and_order_episodes(episodes)
