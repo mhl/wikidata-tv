@@ -346,6 +346,12 @@ def homepage():
         ]
     )
 
+@app.route('/about')
+def about():
+    return render_template(
+        'about.html',
+        google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
+    )
 
 def slow_run_query(query):
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')

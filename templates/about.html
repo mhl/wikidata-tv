@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h1>About this site</h1>
+
+<p>
+I hacked together this site because with TV series I know really
+well (for example:
+<a href="{{ url_for('random_episode', wikidata_item='Q189350') }}">30 Rock</a> and
+<a href="{{ url_for('random_episode', wikidata_item='Q16290') }}">Star Trek: TNG</a>)
+it's easy to just watch your favourite episodes over and
+over. It's sometimes nice, instead, to watch a randomly chosen episode,
+so you don't get bored and can rediscover some gems. Also, I've
+been involved
+with <a href="https://meta.wikimedia.org/wiki/Grants:Project/mySociety/EveryPolitician">a
+Wikidata project at work</a>, and I'm generally excited about
+its potential :)
+</p>
+
+<p>
+  The <a href="https://github.com/mhl/wikidata-tv">(pretty
+  sloppy) code is on GitHub</a> and you can get in contact with
+  me by email at: <img src="http://sphinx.mythic-beasts.com/~mark/random/email.png"></a>
+</p>
+
+{% endblock %}
