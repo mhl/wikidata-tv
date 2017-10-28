@@ -39,8 +39,10 @@ episodes we found of {{ episode.series_name }}.</p>
 {% if report_items %}
   {% include 'problem-report.html' %}
 {% else %}
+  <p>
   No issues found at the season level, but check the table below
   for missing data.
+  </p>
 {% endif %}
 
 <h2>Episodes considered</h2>
