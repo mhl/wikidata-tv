@@ -386,7 +386,7 @@ def slow_get_all_series():
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
     sparql.setReturnFormat(JSON)
     sparql.setQuery('''
-SELECT ?series ?seriesLabel WHERE {
+SELECT DISTINCT ?series ?seriesLabel WHERE {
   ?series wdt:P31/wdt:P279* wd:Q5398426
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en" } }
   # ORDER BY ?seriesLabel
