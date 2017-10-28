@@ -23,13 +23,13 @@ episodes we found of {{ episode.series_name }}.</p>
 </div>
 
 <form class="text-center mt-5 mb-5" action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
-  <input class="btn-lg btn-primary" type="submit" value="Nah, give me another random episode">
+  <input class="btn-lg btn-primary" style="white-space: normal" type="submit" value="Nah, give me another random episode">
 </form>
 
 {% else %}
 
 <form class="text-center mt-5 mb-5" action="{{ url_for('random_episode', wikidata_item=episode.series_item) }}" method="post">
-  <input class="btn-lg btn-primary" type="submit" value="Suggest a random episode of {{ episode.series_name }}">
+  <input class="btn-lg btn-primary" style="white-space: normal" type="submit" value="Suggest a random episode of {{ episode.series_name }}">
 </form>
 
 {% endif %}
