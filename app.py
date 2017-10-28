@@ -14,7 +14,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 
 REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
-REDIS_HOST = environ.get('REDIS_HOST', 'localhost')
+REDIS_URL = environ.get('REDIS_URL', 'redis://localhost')
 
 QUERY_CACHE_EXPIRY = 3 * 60 # 3 minutes
 ALL_SERIES_CACHE_EXPIRY = 24 * 60 * 60 # 1 day
@@ -35,7 +35,7 @@ def redis_get(redis_api, key):
     return redis_api.get(redis_key(key))
 
 
-redis_api = redis.StrictRedis(host=REDIS_HOST, port=6379, db=0)
+redis_api = redis.StrictRedis.from_url(REDIS_URL, db=0)
 
 
 app = Flask(__name__)
