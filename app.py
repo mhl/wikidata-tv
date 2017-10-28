@@ -349,7 +349,6 @@ def homepage():
             ('Low quality data - lots to do',
              [
                  ('Q13417244', 'Brooklyn Nine-Nine'),
-                 ('Q4380', "Don't Trust the B---- in Apartment 23"),
                  ('Q11598', 'Arrested Development'),
                  ('Q5902', 'Red Dwarf'),
              ]),
