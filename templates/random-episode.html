@@ -59,7 +59,11 @@ episodes we found of {{ episode.series_name }}.</p>
   <tbody>
 {% for season_tuple, episodes in episodes_table_data %}
   <tr>
-    <th colspan="4">Season {{ '[Missing P1545 (series ordinal) qualifier]' if season_tuple[1] is none else season_tuple[1] }} <a href="https://www.wikidata.org/wiki/{{ season_tuple[0] }}">{{ season_tuple[0] }}</a> {% if season_tuple[2] %}— {{ season_tuple[2] }}{% endif %}</a></th>
+    <th colspan="4">Season {{ '[Missing P1545 (series ordinal) qualifier]' if season_tuple[1] is none else season_tuple[1] }}
+      {% if season_tuple[0] %}
+        <a href="https://www.wikidata.org/wiki/{{ season_tuple[0] }}">{{ season_tuple[0] }}</a>
+      {% endif %}
+      {% if season_tuple[2] %}— {{ season_tuple[2] }}{% endif %}</a></th>
   </tr>
   {% for episode_data in episodes %}
     <tr>

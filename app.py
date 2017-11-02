@@ -91,9 +91,14 @@ class Episode(object):
         self.series_name = binding['seriesLabel']['value']
         self.item = id_from_item_url(binding['episode']['value'])
         self.series_item = id_from_item_url(binding['series']['value'])
-        self.season_item = id_from_item_url(binding['season']['value'])
-        self.season_number = int_if_present(binding, 'seasonNumber')
-        self.season_label = binding['seasonLabel']['value']
+        if 'season' in binding:
+            self.season_item = id_from_item_url(binding['season']['value'])
+            self.season_number = int_if_present(binding, 'seasonNumber')
+            self.season_label = binding['seasonLabel']['value']
+        else:
+            self.season_item = None
+            self.season_number = 1
+            self.season_label = None
         self.episode_number = int_if_present(binding, 'episodeNumber')
         self.production_code = str_if_present(binding,'productionCode')
         self.previous_episode_item = id_if_present(binding, 'previousEpisode')
@@ -433,17 +438,7 @@ def all_series():
     )
 
 
-@app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
-def random_episode(wikidata_item):
-    purge_cache = (request.method == 'POST') and (request.form.get('purge') == 'yes')
-    # First check that the item we have actually is an instance of a
-    # 'television series' (Q5398426)
-    results = cached_run_query(
-        'ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item),
-        purge_cache)
-    if not results['boolean']:
-        return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
-    # Now get all episodes of that show:
+def get_episodes_multiseason(wikidata_item, purge_cache):
     query = '''
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{0} as ?series) .
@@ -482,26 +477,74 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
         wikidata_item
     )
     results = cached_run_query(query, purge_cache)
-    episodes = parse_episodes(results['results']['bindings'])
+    return parse_episodes(results['results']['bindings']), query
+
+def get_episodes_singleseason(wikidata_item, purge_cache):
+    query = '''
+SELECT ?episodeLabel ?episode ?series ?seriesLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
+  BIND(wd:{0} as ?series) .
+  ?episode p:P179 ?episodeSeriesStatement .
+  ?episodeSeriesStatement ps:P179 ?series .
+  OPTIONAL {{
+    ?episodeSeriesStatement pq:P1545 ?episodeNumber
+  }}
+  OPTIONAL {{
+    ?episode wdt:P2364 ?productionCode
+  }}
+  OPTIONAL {{
+    ?episode wdt:P155 ?previousEpisode .
+  }}
+  OPTIONAL {{
+    ?episode wdt:P156 ?nextEpisode .
+  }}
+  OPTIONAL {{
+    ?series wdt:P1113 ?episodesInSeason
+  }}
+  OPTIONAL {{
+    ?series wdt:P2437 ?totalSeasons
+  }}
+  SERVICE wikibase:label {{
+     bd:serviceParam wikibase:language "en" .
+  }}
+}} ORDER BY xsd:integer(?episodeNumber) ?productionCode
+'''.format(wikidata_item)
+    results = cached_run_query(query, purge_cache)
+    return parse_episodes(results['results']['bindings']), query
+
+@app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
+def random_episode(wikidata_item):
+    purge_cache = (request.method == 'POST') and (request.form.get('purge') == 'yes')
+    # First check that the item we have actually is an instance of a
+    # 'television series' (Q5398426)
+    results = cached_run_query(
+        'ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item),
+        purge_cache)
+    if not results['boolean']:
+        return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
+    # Now get all episodes of that show, assuming it has the
+    # multi-season structure:
+    episodes, query = get_episodes_multiseason(wikidata_item, purge_cache)
     if not episodes:
-        report_items = problem_report_extra_queries(wikidata_item, purge_cache)
-        report_items = linkify_report(report_items)
-        # Get the name of the series so that we can make the page more readable:
-        results = cached_run_query(
-            '''SELECT ?seriesLabel WHERE {{
+        episodes, query = get_episodes_singleseason(wikidata_item, purge_cache)
+        if not episodes:
+            report_items = problem_report_extra_queries(wikidata_item, purge_cache)
+            report_items = linkify_report(report_items)
+            # Get the name of the series so that we can make the page more readable:
+            results = cached_run_query(
+                '''SELECT ?seriesLabel WHERE {{
   BIND(wd:{0} as ?series)
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
             }}'''.format(wikidata_item), purge_cache)
-        series_name = results['results']['bindings'][0]['seriesLabel']['value']
-        return render_template(
-            'no-episodes.html',
-            google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
-            report_items=report_items,
-            series_item=wikidata_item,
-            series_name=series_name,
-            all_episodes_query=query,
-            title='No episodes found of {0}'.format(series_name),
-        )
+            series_name = results['results']['bindings'][0]['seriesLabel']['value']
+            return render_template(
+                'no-episodes.html',
+                google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
+                report_items=report_items,
+                series_item=wikidata_item,
+                series_name=series_name,
+                all_episodes_query=query,
+                title='No episodes found of {0}'.format(series_name),
+            )
     episodes_table_data = group_and_order_episodes(episodes)
     episode = random.choice(episodes)
     return render_template(
