@@ -444,6 +444,7 @@ def get_episodes_multiseason(wikidata_item, purge_cache):
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{0} as ?series) .
   ?episode wdt:P361 ?season .
+  ?episode wdt:P31/wdt:P279* wd:Q21191270 .
   ?episode p:P179 ?episodePartOfSeriesStatement .
   ?episodePartOfSeriesStatement ps:P179 ?series .
   ?season wdt:P31 wd:Q3464665 .
@@ -485,6 +486,7 @@ def get_episodes_singleseason(wikidata_item, purge_cache):
 SELECT ?episodeLabel ?episode ?series ?seriesLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{0} as ?series) .
   ?episode p:P179 ?episodeSeriesStatement .
+  ?episode wdt:P31/wdt:P279* wd:Q21191270 .
   ?episodeSeriesStatement ps:P179 ?series .
   OPTIONAL {{
     ?episodeSeriesStatement pq:P1545 ?episodeNumber
