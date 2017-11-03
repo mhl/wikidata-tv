@@ -10,7 +10,7 @@ import re
 
 from flask import Flask, redirect, render_template, request
 from jinja2 import Markup
-from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 
 
 REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
@@ -468,9 +468,10 @@ def about():
         title='About this site',
     )
 
-def slow_run_query(query):
+def slow_run_query(query, method=GET):
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
     sparql.setReturnFormat(JSON)
+    sparql.setMethod(method)
     sparql.setQuery(query)
     return sparql.query().convert()
 
@@ -480,7 +481,8 @@ def cached_run_query(query, purge_cache=False):
     key = 'query:{}'.format(normalized_query)
     cached = redis_get(redis_api, key)
     if cached is None or purge_cache:
-        result = slow_run_query(normalized_query)
+        method = POST if purge_cache else GET
+        result = slow_run_query(normalized_query, method)
         redis_set(redis_api, key, json.dumps(result), QUERY_CACHE_EXPIRY)
     else:
         result = json.loads(cached)

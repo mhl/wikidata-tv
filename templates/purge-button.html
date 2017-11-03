@@ -1,13 +1,7 @@
 <p>
   If you have just edited Wikidata, but the changes aren't being
   shown on this page yet, you can try reloading without
-  caching. (Note that this is only the caching on this site: the
-  Wikidata Query Service, which this site uses, also caches the
-  results it returns, which may take 5 minutes to expire -
-  FIXME: we should switch to using POST rather than GET for
-  requests when a cache purge has been requested, since apparently
-  <a href="https://www.mediawiki.org/wiki/Wikidata_query_service/User_Manual#SPARQL_endpoint">POST
-  can't do anything about thisrequests aren't cached</a>.)
+  caching:
 </p>
 <form class="mb-4" method="POST">
   <input type="hidden" name="purge" value="yes">
