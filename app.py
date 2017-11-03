@@ -114,6 +114,13 @@ class Episode(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    @property
+    def label_with_item(self):
+        if self.item == self.name:
+            return self.item
+        else:
+            return '{0} ({1})'.format(self.name, self.item)
+
 
 def parse_episodes(result_bindings):
     all_episodes = [Episode(b) for b in result_bindings]
@@ -127,13 +134,13 @@ def parse_episodes(result_bindings):
                 episode.previous_episode = item_id_to_episode[episode.previous_episode_item]
             else:
                 fmt = '{0} follows {1}, but {1} was not found by the query'
-                problems.append(fmt.format(episode.item, episode.previous_episode_item))
+                problems.append(fmt.format(episode.label_with_item, episode.previous_episode_item))
         if episode.next_episode_item:
             if episode.next_episode_item in item_id_to_episode:
                 episode.next_episode = item_id_to_episode[episode.next_episode_item]
             else:
                 fmt = '{0} followed by {1} but {1} was not found by the query'
-                problems.append(fmt.format(episode.item, episode.next_episode_item))
+                problems.append(fmt.format(episode.label_with_item, episode.next_episode_item))
     return all_episodes
 
 
@@ -149,28 +156,28 @@ def group_and_order_episodes(episodes):
     for episode in episodes:
         if not episode.previous_episode_item and not episode.next_episode_item:
             fmt = 'Episode {item_id} has no previous or next episode'
-            problems.append(fmt.format(item_id=episode.item))
+            problems.append(fmt.format(item_id=episode.label_with_item))
             unlinked_episodes.append(episode)
         if episode.previous_episode:
             if episode.previous_episode.next_episode != episode:
                 fmt = '{0} follows {1}, but {1} followed by {2}'
                 problems.append(fmt.format(
-                    episode.item,
-                    episode.previous_episode.item,
-                    episode.previous_episode.next_episode.item))
+                    episode.label_with_item,
+                    episode.previous_episode.label_with_item,
+                    episode.previous_episode.next_episode.label_with_item))
         if episode.next_episode:
             if episode.next_episode.previous_episode:
                 if episode.next_episode.previous_episode != episode:
                     fmt = '{0} followed by {1}, but {1} follows {2}'
                     problems.append(fmt.format(
-                        episode.item,
-                        episode.next_episode.item,
-                        episode.next_episode.previous_episode.item))
+                        episode.label_with_item,
+                        episode.next_episode.label_with_item,
+                        episode.next_episode.previous_episode.label_with_item))
             else:
                 fmt = '{0} followed by {1}, but {1} follows nothing'
                 problems.append(fmt.format(
-                    episode.item,
-                    episode.next_episode.item))
+                    episode.label_with_item,
+                    episode.next_episode.label_with_item))
         if episode.next_episode and not episode.previous_episode:
             first_episodes.append(episode)
         if episode.previous_episode and not episode.next_episode:
