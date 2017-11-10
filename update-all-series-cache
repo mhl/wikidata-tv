@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+
+from app import cached_get_all_series
+
+cached_get_all_series(purge_cache=True)
