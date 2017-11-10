@@ -526,9 +526,9 @@ SELECT DISTINCT ?series ?seriesLabel WHERE {
     )
 
 
-def cached_get_all_series():
+def cached_get_all_series(purge_cache=False):
     cached = redis_get(redis_api, 'all-series')
-    if cached is None:
+    if (cached is None) or purge_cache:
         result = slow_get_all_series()
         redis_set(redis_api, 'all-series', json.dumps(result), ALL_SERIES_CACHE_EXPIRY)
     else:
