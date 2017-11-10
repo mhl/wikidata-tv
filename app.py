@@ -585,8 +585,11 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
     ORDER BY xsd:integer(?seasonNumber) xsd:integer(?episodeNumber) ?productionCode'''.format(
         wikidata_item
     )
-    results = query_service.run_query(query)
-    return parse_episodes(results['results']['bindings']), query
+    results = query_service.run_query(
+        query,
+        'Getting episodes of {0} assuming multi-season modelling'.format(wikidata_item)
+    )
+    return parse_episodes(results['results']['bindings'])
 
 def get_episodes_singleseason(query_service, wikidata_item):
     query = '''
@@ -618,8 +621,11 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?episodeNumber ?productionCod
   }}
 }} ORDER BY xsd:integer(?episodeNumber) ?productionCode
 '''.format(wikidata_item)
-    results = query_service.run_query(query)
-    return parse_episodes(results['results']['bindings']), query
+    results = query_service.run_query(
+        query,
+        'Getting episodes of {0} assuming single-season modelling'.format(wikidata_item)
+    )
+    return parse_episodes(results['results']['bindings'])
 
 @app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
 def random_episode(wikidata_item):
@@ -628,14 +634,16 @@ def random_episode(wikidata_item):
     # First check that the item we have actually is an instance of a
     # 'television series' (Q5398426)
     results = query_service.run_query(
-        'ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item))
+        'ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item),
+        'Checking that {0} is really a television series'.format(wikidata_item)
+    )
     if not results['boolean']:
         return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
     # Now get all episodes of that show, assuming it has the
     # multi-season structure:
-    episodes, query = get_episodes_multiseason(query_service, wikidata_item)
+    episodes = get_episodes_multiseason(query_service, wikidata_item)
     if not episodes:
-        episodes, query = get_episodes_singleseason(query_service, wikidata_item)
+        episodes = get_episodes_singleseason(query_service, wikidata_item)
         if not episodes:
             report_items = problem_report_extra_queries(query_service, wikidata_item)
             report_items = linkify_report(report_items)
@@ -644,7 +652,8 @@ def random_episode(wikidata_item):
                 '''SELECT ?seriesLabel WHERE {{
   BIND(wd:{0} as ?series)
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
-            }}'''.format(wikidata_item))
+            }}'''.format(wikidata_item),
+                'Getting the Wikidata label (i.e. name) of {0} for a better error message'.format(wikidata_item))
             series_name = results['results']['bindings'][0]['seriesLabel']['value']
             return render_template(
                 'no-episodes.html',
@@ -652,7 +661,7 @@ def random_episode(wikidata_item):
                 report_items=report_items,
                 series_item=wikidata_item,
                 series_name=series_name,
-                all_episodes_query=query,
+                queries_used=query_service.queries,
                 title='No episodes found of {0}'.format(series_name),
             )
     episodes_table_data, _ = group_and_order_episodes(episodes)
@@ -666,7 +675,7 @@ def random_episode(wikidata_item):
         report_items=linkify_report(problem_report(episodes)),
         episodes_table_data=episodes_table_data,
         series_item=wikidata_item,
-        all_episodes_query=query,
+        queries_used=query_service.queries,
         title=episodes[0].series_name,
     )
 
