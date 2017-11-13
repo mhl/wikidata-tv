@@ -12,6 +12,7 @@ from flask import Flask, redirect, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 
+import queries
 
 REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
 REDIS_URL = environ.get('REDIS_URL', 'redis://localhost')
@@ -297,11 +298,10 @@ def problem_report(episodes):
 def problem_report_extra_queries(query_service, series_item):
     report_items = []
     # First check if it has a number of seasons property:
-    results = query_service.cached_run_query('''
-SELECT ?numberOfSeasons WHERE {{
-  wd:{0} wdt:P2437 ?numberOfSeasons
-}}
-    '''.format(series_item))
+    results = query_service.run_query(
+        queries.NUMBER_OF_SEASONS_FMT.format(item=series_item),
+        'Checking if {0} has a \'number of seasons\' property'.format(series_item)
+    )
     values = [
         b['numberOfSeasons']['value'] for b in
         results['results']['bindings']
@@ -333,21 +333,10 @@ SELECT ?numberOfSeasons WHERE {{
          )
          number_of_seasons = None
     # Now find all the seasons, with option extra properties:
-    results = query_service.run_query('''
-SELECT ?season ?seasonNumber ?episodesInSeason WHERE {{
-  ?season wdt:P31 wd:Q3464665 .
-  ?season p:P179 ?seriesStatement .
-  ?seriesStatement ps:P179 wd:{0}
-  OPTIONAL {{
-    ?seriesStatement pq:P1545 ?seasonNumber .
-  }}
-  OPTIONAL {{
-    ?season wdt:P1113 ?episodesInSeason
-  }}
-}}
-ORDER BY xsd:integer(?seasonNumber)
-    '''.format(series_item))
-
+    results = query_service.run_query(
+        queries.SEASONS_WITH_EPISODES_TOTALS_FMT.format(item=series_item),
+        'Finding all seasons of {0}'.format(series_item)
+    )
     values = [
         {k: v['value'] for k, v in b.items()}
         for b in results['results']['bindings']
@@ -394,24 +383,11 @@ ORDER BY xsd:integer(?seasonNumber)
                 )
             )
     all_seasons = ['wd:' + id_from_item_url(season['season']) for season in values]
-    results = query_service.run_query('''
-SELECT ?episode ?season ?seasonNumber ?episodeNumber WHERE {{
-  ?episode wdt:P361 ?season
-  OPTIONAL {{
-    ?episode p:P179 ?seriesStatement .
-    ?seriesStatement ps:P179 wd:{series_item}
-    OPTIONAL {{
-      ?seriesStatement pq:P1545 ?episodeNumber
-    }}
-  }}
-
-  VALUES ?season {{ {seasons} }}
-}}
-ORDER BY ?seasonNumber ?episodeNumber
-    '''.format(
-        series_item=series_item,
-        seasons=' '.join(all_seasons)
-    ))
+    results = query_service.run_query(queries.EPISODES_FROM_SEASON_AND_SERIES_FMT.format(
+        item=series_item,
+        seasons=' '.join(all_seasons)),
+        'Finding the episodes directly from season items'
+    )
     values = [
         {k: v['value'] for k, v in b.items()}
         for b in results['results']['bindings']
@@ -506,12 +482,7 @@ def about():
 def slow_get_all_series():
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
     sparql.setReturnFormat(JSON)
-    sparql.setQuery('''
-SELECT DISTINCT ?series ?seriesLabel WHERE {
-  ?series wdt:P31/wdt:P279* wd:Q5398426
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" } }
-  # ORDER BY ?seriesLabel
-''')
+    sparql.setQuery(queries.ALL_TV_SERIES)
     results = sparql.query().convert()
     return sorted(
         (
@@ -547,44 +518,7 @@ def all_series():
 
 
 def get_episodes_multiseason(query_service, wikidata_item):
-    query = '''
-SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
-  BIND(wd:{0} as ?series) .
-  ?episode wdt:P361 ?season .
-  ?episode wdt:P31/wdt:P279* wd:Q21191270 .
-  ?episode p:P179 ?episodePartOfSeriesStatement .
-  ?episodePartOfSeriesStatement ps:P179 ?series .
-  ?season wdt:P31 wd:Q3464665 .
-  ?season p:P179 ?seriesStatement .
-  ?seriesStatement ps:P179 ?series .
-  OPTIONAL {{
-    ?seriesStatement pq:P1545 ?seasonNumber .
-  }}
-  OPTIONAL {{
-    ?episodePartOfSeriesStatement pq:P1545 ?episodeNumber
-  }}
-  OPTIONAL {{
-    ?episode wdt:P2364 ?productionCode
-  }}
-  OPTIONAL {{
-    ?episode wdt:P155 ?previousEpisode .
-  }}
-  OPTIONAL {{
-    ?episode wdt:P156 ?nextEpisode .
-  }}
-  OPTIONAL {{
-    ?series wdt:P2437 ?totalSeasons
-  }}
-  OPTIONAL {{
-    ?season wdt:P1113 ?episodesInSeason
-  }}
-  SERVICE wikibase:label {{
-     bd:serviceParam wikibase:language "en" .
-  }}
-}}
-    ORDER BY xsd:integer(?seasonNumber) xsd:integer(?episodeNumber) ?productionCode'''.format(
-        wikidata_item
-    )
+    query = queries.MULTI_SEASON_QUERY_FMT.format(item=wikidata_item)
     results = query_service.run_query(
         query,
         'Getting episodes of {0} assuming multi-season modelling'.format(wikidata_item)
@@ -592,35 +526,7 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
     return parse_episodes(results['results']['bindings'])
 
 def get_episodes_singleseason(query_service, wikidata_item):
-    query = '''
-SELECT ?episodeLabel ?episode ?series ?seriesLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
-  BIND(wd:{0} as ?series) .
-  ?episode p:P179 ?episodeSeriesStatement .
-  ?episode wdt:P31/wdt:P279* wd:Q21191270 .
-  ?episodeSeriesStatement ps:P179 ?series .
-  OPTIONAL {{
-    ?episodeSeriesStatement pq:P1545 ?episodeNumber
-  }}
-  OPTIONAL {{
-    ?episode wdt:P2364 ?productionCode
-  }}
-  OPTIONAL {{
-    ?episode wdt:P155 ?previousEpisode .
-  }}
-  OPTIONAL {{
-    ?episode wdt:P156 ?nextEpisode .
-  }}
-  OPTIONAL {{
-    ?series wdt:P1113 ?episodesInSeason
-  }}
-  OPTIONAL {{
-    ?series wdt:P2437 ?totalSeasons
-  }}
-  SERVICE wikibase:label {{
-     bd:serviceParam wikibase:language "en" .
-  }}
-}} ORDER BY xsd:integer(?episodeNumber) ?productionCode
-'''.format(wikidata_item)
+    query = queries.SINGLE_SEASON_QUERY_FMT.format(item=wikidata_item)
     results = query_service.run_query(
         query,
         'Getting episodes of {0} assuming single-season modelling'.format(wikidata_item)
@@ -634,7 +540,7 @@ def random_episode(wikidata_item):
     # First check that the item we have actually is an instance of a
     # 'television series' (Q5398426)
     results = query_service.run_query(
-        'ASK WHERE {{ wd:{0} wdt:P31/wdt:P279* wd:Q5398426 }}'.format(wikidata_item),
+        queries.IS_ITEM_A_TV_SERIES_FMT.format(item=wikidata_item),
         'Checking that {0} is really a television series'.format(wikidata_item)
     )
     if not results['boolean']:
@@ -649,10 +555,7 @@ def random_episode(wikidata_item):
             report_items = linkify_report(report_items)
             # Get the name of the series so that we can make the page more readable:
             results = query_service.run_query(
-                '''SELECT ?seriesLabel WHERE {{
-  BIND(wd:{0} as ?series)
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
-            }}'''.format(wikidata_item),
+                queries.LABEL_FOR_ITEM_FMT.format(item=wikidata_item),
                 'Getting the Wikidata label (i.e. name) of {0} for a better error message'.format(wikidata_item))
             series_name = results['results']['bindings'][0]['seriesLabel']['value']
             return render_template(
