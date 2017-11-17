@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from itertools import groupby
 import cgi
 import json
 from os import environ
@@ -12,7 +11,9 @@ from flask import Flask, redirect, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 
+import problems
 import queries
+from episodes import Episode, group_and_order_episodes, id_from_item_url
 
 REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
 REDIS_URL = environ.get('REDIS_URL', 'redis://localhost')
@@ -62,65 +63,6 @@ def linkify_report(report_items):
         (success, Markup(wikidata_linkify(description)))
         for success, description in report_items
     ]
-
-
-def id_from_item_url(url):
-    return re.sub(r'^http://www.wikidata.org/entity/', '', url)
-
-
-def int_if_present(binding, key):
-    if key in binding:
-        return int(binding[key]['value'])
-    return None
-
-
-def str_if_present(binding, key):
-    if key in binding:
-        return binding[key]['value']
-    return None
-
-
-def id_if_present(binding, key):
-    if key in binding:
-        return id_from_item_url(binding[key]['value'])
-    return None
-
-
-class Episode(object):
-    def __init__(self, binding):
-        self.name = binding['episodeLabel']['value']
-        self.series_name = binding['seriesLabel']['value']
-        self.item = id_from_item_url(binding['episode']['value'])
-        self.series_item = id_from_item_url(binding['series']['value'])
-        if 'season' in binding:
-            self.season_item = id_from_item_url(binding['season']['value'])
-            self.season_number = int_if_present(binding, 'seasonNumber')
-            self.season_label = binding['seasonLabel']['value']
-        else:
-            self.season_item = None
-            self.season_number = 1
-            self.season_label = None
-        self.episode_number = int_if_present(binding, 'episodeNumber')
-        self.production_code = str_if_present(binding,'productionCode')
-        self.previous_episode_item = id_if_present(binding, 'previousEpisode')
-        self.previous_episode = None
-        self.next_episode_item = id_if_present(binding, 'nextEpisode')
-        self.next_episode = None
-        self.episodes_in_season = int_if_present(binding, 'episodesInSeason')
-        self.total_seasons = int_if_present(binding, 'totalSeasons')
-
-    def __eq__(self, other):
-        return self.item == other.item
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    @property
-    def label_with_item(self):
-        if self.item == self.name:
-            return self.item
-        else:
-            return '{0} ({1})'.format(self.name, self.item)
 
 
 class WikidataQuery(object):
@@ -177,269 +119,6 @@ def parse_episodes(result_bindings):
                 fmt = '{0} followed by {1} but {1} was not found by the query'
                 problems.append(fmt.format(episode.label_with_item, episode.next_episode_item))
     return all_episodes
-
-
-def group_and_order_episodes(episodes):
-    id_to_episode = {}
-    first_episodes = []
-    last_episodes = []
-    for episode in episodes:
-        id_to_episode[episode.item] = episode
-    # Check that the previous and next episodes are consistent:
-    unlinked_episodes = []
-    problems = []
-    for episode in episodes:
-        if not episode.previous_episode_item and not episode.next_episode_item:
-            fmt = 'Episode {item_id} has no previous or next episode'
-            problems.append(fmt.format(item_id=episode.label_with_item))
-            unlinked_episodes.append(episode)
-        if episode.previous_episode:
-            if episode.previous_episode.next_episode != episode:
-                fmt = '{0} follows {1}, but {1} followed by {2}'
-                problems.append(fmt.format(
-                    episode.label_with_item,
-                    episode.previous_episode.label_with_item,
-                    episode.previous_episode.next_episode.label_with_item))
-        if episode.next_episode:
-            if episode.next_episode.previous_episode:
-                if episode.next_episode.previous_episode != episode:
-                    fmt = '{0} followed by {1}, but {1} follows {2}'
-                    problems.append(fmt.format(
-                        episode.label_with_item,
-                        episode.next_episode.label_with_item,
-                        episode.next_episode.previous_episode.label_with_item))
-            else:
-                fmt = '{0} followed by {1}, but {1} follows nothing'
-                problems.append(fmt.format(
-                    episode.label_with_item,
-                    episode.next_episode.label_with_item))
-        if episode.next_episode and not episode.previous_episode:
-            first_episodes.append(episode)
-        if episode.previous_episode and not episode.next_episode:
-            last_episodes.append(episode)
-    first_or_last_problems = []
-    if len(first_episodes) == 0:
-        first_or_last_problems.append('There was no first episode found (in the sense that it has no \'follows\' but does have a \'followed by\'')
-    elif len(first_episodes) > 1:
-        fmt = 'More than one episode had a \'followed by\' but no \'follows\': {0}'
-        first_or_last_problems.append(fmt.format(', '.join(e.label_with_item for e in first_episodes)))
-    if len(last_episodes) == 0:
-        first_or_last_problems.append('There was no last episode found (in the sense that it has no \'followed by\' but does have a \'follows\'')
-    elif len(last_episodes) > 1:
-        fmt = 'More than one episode had a \'follows\' but no \'followed by\': {0}'
-        first_or_last_problems.append(fmt.format(', '.join(e.label_with_item for e in last_episodes)))
-    # If there are no unlinked episodes, 1 first episode and no
-    # 'follows' / 'followed by' consistency problems, then we can
-    # order by the 'follows' / 'followed by' relationships:
-    if len(first_episodes) == 1 and len(unlinked_episodes) == 0 \
-       and len(problems) == 0:
-        episodes = []
-        current_episode = next(iter(first_episodes))
-        while current_episode:
-            episodes.append(current_episode)
-            current_episode = current_episode.next_episode
-    report_items = [(False, problem) for problem in first_or_last_problems + problems]
-    return groupby(episodes, lambda e: (e.season_item, e.season_number, e.season_label)), report_items
-
-
-def problem_report(episodes):
-    grouped_episodes_iter, report_items = group_and_order_episodes(episodes)
-    # Just make this non-lazy to avoid confusion when items are
-    # consumed and you can't get them back:
-    grouped = [
-        (season_tuple, list(episodes_group))
-        for season_tuple, episodes_group in grouped_episodes_iter
-    ]
-    for season_tuple, episodes_group in grouped:
-        season_item, season_number, season_label = season_tuple
-        if episodes_group:
-            # Then there are some episodes in that season:
-            arbitrary_episode = episodes_group[0]
-            if arbitrary_episode.episodes_in_season:
-                # Then we can check the numbers match:
-                n_episodes_found = len(episodes_group)
-                if arbitrary_episode.episodes_in_season != n_episodes_found:
-                    report_items.append(
-                        (
-                            False,
-                            "The number of episodes actually found in season {season_item} ({n_found}) was different from the number of episodes suggested by the 'number of episodes' (P1113) statement ({n_expected})".format(
-                                season_item=season_item,
-                                n_found=n_episodes_found,
-                                n_expected=arbitrary_episode.episodes_in_season)
-                        )
-                    )
-            else:
-                report_items.append(
-                    (
-                        False,
-                        "Season {season_item} was missing the 'number of episodes' (P1113) statement".format(season_item=season_item)
-                    )
-                )
-        else:
-            report_items.append(
-                (
-                    False,
-                    'There were no episodes at all found in season {season_item}!'.format(season_item=season_item)
-                )
-            )
-    episodes_without_an_episode_number = [
-        episode for episode in episodes
-        if not episode.episode_number
-    ]
-    if len(episodes_without_an_episode_number):
-        report_items.append(
-            (
-                False,
-                "{n} episodes were missing an episode number, which should be specified as a 'series ordinal' (P1545) qualifier to the 'series' (P179) statement linking the episode to the series".format(n=len(episodes_without_an_episode_number))
-            )
-        )
-    return report_items
-
-def problem_report_extra_queries(query_service, series_item):
-    report_items = []
-    # First check if it has a number of seasons property:
-    results = query_service.run_query(
-        queries.NUMBER_OF_SEASONS_FMT.format(item=series_item),
-        'Checking if {0} has a \'number of seasons\' property'.format(series_item)
-    )
-    values = [
-        b['numberOfSeasons']['value'] for b in
-        results['results']['bindings']
-    ]
-    values_len = len(values)
-    if values_len > 1:
-        report_items.append(
-            (
-                False,
-                "Multiple equally truthy statements for 'number of seasons' (P2437): {0}".format(
-                    ', '.join(values))
-            )
-        )
-        number_of_seasons = None
-    elif values_len == 1:
-        report_items.append(
-            (
-                True,
-                "Found the 'number of seasons' (P2437): {0}".format(values[0])
-            )
-        )
-        number_of_seasons = int(values[0])
-    else:
-         report_items.append(
-             (
-                 False,
-                 "No 'number of seasons' (P2347) property found"
-             )
-         )
-         number_of_seasons = None
-    # Now find all the seasons, with option extra properties:
-    results = query_service.run_query(
-        queries.SEASONS_WITH_EPISODES_TOTALS_FMT.format(item=series_item),
-        'Finding all seasons of {0}'.format(series_item)
-    )
-    values = [
-        {k: v['value'] for k, v in b.items()}
-        for b in results['results']['bindings']
-    ]
-    if number_of_seasons is not None:
-        if number_of_seasons == len(values):
-            report_items.append(
-                (
-                    True,
-                    "The number of seasons actually found matched the 'number of seasons' (P2437)"
-                )
-            )
-        else:
-            report_items.append(
-                (
-                    False,
-                    "The number of seasons actually found ({found}) didn't match the 'number of seasons' (P2437) value {expected}".format(found=len(values), expected=number_of_seasons)
-                )
-            )
-    if not values:
-        report_items.append(
-            (
-                False,
-                "No seasons were found at all - they should have a 'series' (P179) relationship to {0}".format(series_item)
-            )
-        )
-    season_to_number_of_episodes = {}
-    for season in values:
-        season_item = id_from_item_url(season['season'])
-        if 'seasonNumber' not in season:
-            report_items.append(
-                (
-                    False,
-                    "No 'season ordinal' (P1545) qualifier was found for the 'series' (P179) statement for season {0}".format(season_item)
-                )
-            )
-        if 'episodesInSeason' in season:
-            season_to_number_of_episodes[season_item] = int(season['episodesInSeason'])
-        else:
-            report_items.append(
-                (
-                    False,
-                    "No 'number of episodes' (P1113) statement for season {0}".format(season_item)
-                )
-            )
-    all_seasons = ['wd:' + id_from_item_url(season['season']) for season in values]
-    results = query_service.run_query(queries.EPISODES_FROM_SEASON_AND_SERIES_FMT.format(
-        item=series_item,
-        seasons=' '.join(all_seasons)),
-        'Finding the episodes directly from season items'
-    )
-    values = [
-        {k: v['value'] for k, v in b.items()}
-        for b in results['results']['bindings']
-    ]
-    if values:
-        # Group these episodes by season so we can compare the counts:
-        grouped_by_season = {
-            season: results
-            for season, results
-            in groupby(values, lambda v: id_from_item_url(v['season']))
-        }
-        for season_item, expected_number_of_episodes in season_to_number_of_episodes.items():
-            if season_item in grouped_by_season:
-                n_episodes_from_part_of = len(grouped_by_season[season_item])
-                if n_episodes_from_part_of == expected_number_of_episodes:
-                    report_items.append(
-                        (
-                            True,
-                            "The number of episodes that were 'part of' (P361) season {season_item} matched the number of episodes expected from the 'number of episodes' (P1113) for the season: {n}".format(season_item=season_item, n=expected_number_of_episodes)
-                        )
-                    )
-                else:
-                    report_items.append(
-                        (
-                            False,
-                            "The number of episodes that were 'part of' (P361) season {season_item} ({n_part_of}) didn't match the number of episodes expected from the 'number of episodes' (P1113) for the season ({expected})".format(season_item=season_item, n_part_of=n_episodes_from_part_of, expected=expected_number_of_episodes)
-                        )
-                    )
-        for value in values:
-            if value['seriesStatement']:
-                if not value['episodeNumber']:
-                    report_items.append(
-                        (
-                            False,
-                            "The episode {episode}'s 'series' (P179) statement linking it to {series_item} lacked a 'series ordinal' (P1545) qualifier".format(episode=id_from_item_url(value['episode']), series_item=series_item)
-                        )
-                    )
-            else:
-                report_items.append(
-                    (
-                        False,
-                        "The episode {episode} was missing a 'series' (P179) statement linking it to {series_item}".format(episode=id_from_item_url(value['episode']), series_item=series_item)
-                    )
-                )
-    else:
-        report_items.append(
-            (
-                False,
-                "Found no episodes with a 'part of' (P361) relationship to any season of the series"
-            )
-        )
-    return report_items
 
 
 @app.route('/')
@@ -551,7 +230,7 @@ def random_episode(wikidata_item):
     if not episodes:
         episodes = get_episodes_singleseason(query_service, wikidata_item)
         if not episodes:
-            report_items = problem_report_extra_queries(query_service, wikidata_item)
+            report_items = problems.report_extra_queries(query_service, wikidata_item)
             report_items = linkify_report(report_items)
             # Get the name of the series so that we can make the page more readable:
             results = query_service.run_query(
@@ -575,7 +254,7 @@ def random_episode(wikidata_item):
         show_random=(request.method == 'POST'),
         episode=episode,
         all_episodes=episodes,
-        report_items=linkify_report(problem_report(episodes)),
+        report_items=linkify_report(problems.report(episodes)),
         episodes_table_data=episodes_table_data,
         series_item=wikidata_item,
         queries_used=query_service.queries,
