@@ -144,6 +144,7 @@ def homepage():
                  ('Q13417244', 'Brooklyn Nine-Nine'),
                  ('Q11598', 'Arrested Development'),
                  ('Q5902', 'Red Dwarf'),
+                 ('Q22908690', 'The Good Place'),
              ]),
         ],
         title='Home',
