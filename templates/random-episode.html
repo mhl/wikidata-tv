@@ -15,7 +15,18 @@ Your random episode of {{ episode.series_name }} is...
 
 <div class="h2 mt-2 mb-2 display-4">{{ episode.name }}</div>
 
-<div class="h4">from season {{ episode.season_number }}</div>
+<div class="h4">
+  {% if uses_single_season_modelling %}
+    {% if episode.episode_number %}
+      which is episode {{ episode.episode_number }}
+    {% endif %}
+  {% else %}
+    {% if episode.episode_number_in_season %}
+      which is episode {{ episode.episode_number_in_season }}
+    {% endif %}
+    from season {{ episode.season_number }}
+  {% endif %}
+</div>
 
 <p>This episode was picked from {{ all_episodes|length }}
 episodes we found of {{ episode.series_name }}.</p>
