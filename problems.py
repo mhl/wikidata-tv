@@ -157,7 +157,7 @@ def report_extra_queries(query_service, series_item):
     if values:
         # Group these episodes by season so we can compare the counts:
         grouped_by_season = {
-            season: results
+            season: list(results)
             for season, results
             in groupby(values, lambda v: id_from_item_url(v['season']))
         }
