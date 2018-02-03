@@ -1,5 +1,5 @@
 MULTI_SEASON_QUERY_FMT = '''
-SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
+SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?numberInSeason ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{item} as ?series) .
   ?episode wdt:P361 ?season .
   ?episode wdt:P31/wdt:P279* wd:Q21191270 .
@@ -8,6 +8,11 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?seasonNumber ?season
   ?season wdt:P31 wd:Q3464665 .
   ?season p:P179 ?seriesStatement .
   ?seriesStatement ps:P179 ?series .
+  OPTIONAL {{
+    ?episode p:P179 ?episodeSeriesToSeason .
+    ?episodeSeriesToSeason ps:P179 ?season .
+    ?episodeSeriesToSeason pq:P1545 ?numberInSeason
+  }}
   OPTIONAL {{
     ?seriesStatement pq:P1545 ?seasonNumber .
   }}

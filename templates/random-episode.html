@@ -52,6 +52,7 @@ episodes we found of {{ episode.series_name }}.</p>
   <tr>
     <th>Name</th>
     <th>Item</th>
+    <th>№ in Season</th>
     <th>№ in Series</th>
     <th>Production Code</th>
   </tr>
@@ -69,6 +70,7 @@ episodes we found of {{ episode.series_name }}.</p>
     <tr>
       <td>{{ episode_data.name }}</td>
       <td><a href="https://www.wikidata.org/wiki/{{ episode_data.item }}">{{ episode_data.item }}</a></td>
+      <td>{{ episode_data.episode_number_in_season if episode_data.episode_number_in_season else '[Missing]' }}</td>
       <td>{{ episode_data.episode_number if episode_data.episode_number else '[Missing]' }}</td>
       <td>{{ episode_data.production_code if episode_data.production_code else '' }}</td>
     </tr>
