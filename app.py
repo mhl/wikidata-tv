@@ -226,9 +226,11 @@ def random_episode(wikidata_item):
         return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
     # Now get all episodes of that show, assuming it has the
     # multi-season structure:
+    uses_single_season_modelling = False
     episodes = get_episodes_multiseason(query_service, wikidata_item)
     if not episodes:
         episodes = get_episodes_singleseason(query_service, wikidata_item)
+        uses_single_season_modelling = True
         if not episodes:
             report_items = problems.report_extra_queries(query_service, wikidata_item)
             report_items = linkify_report(report_items)
@@ -254,6 +256,7 @@ def random_episode(wikidata_item):
         show_random=(request.method == 'POST'),
         episode=episode,
         all_episodes=episodes,
+        uses_single_season_modelling=uses_single_season_modelling,
         report_items=linkify_report(problems.report(episodes)),
         episodes_table_data=episodes_table_data,
         series_item=wikidata_item,
