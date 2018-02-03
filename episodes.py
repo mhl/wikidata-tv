@@ -76,12 +76,13 @@ def group_and_order_episodes(episodes):
             problems.append(fmt.format(item_id=episode.label_with_item))
             unlinked_episodes.append(episode)
         if episode.previous_episode:
-            if episode.previous_episode.next_episode != episode:
-                fmt = '{0} follows {1}, but {1} followed by {2}'
-                problems.append(fmt.format(
-                    episode.label_with_item,
-                    episode.previous_episode.label_with_item,
-                    episode.previous_episode.next_episode.label_with_item))
+            if episode.previous_episode.next_episode:
+                if episode.previous_episode.next_episode != episode:
+                    fmt = '{0} follows {1}, but {1} followed by {2}'
+                    problems.append(fmt.format(
+                        episode.label_with_item,
+                        episode.previous_episode.label_with_item,
+                        episode.previous_episode.next_episode.label_with_item))
         if episode.next_episode:
             if episode.next_episode.previous_episode:
                 if episode.next_episode.previous_episode != episode:
