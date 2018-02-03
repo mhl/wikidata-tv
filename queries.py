@@ -89,7 +89,7 @@ SELECT ?season ?seasonNumber ?episodesInSeason WHERE {{
 ORDER BY xsd:integer(?seasonNumber)'''
 
 EPISODES_FROM_SEASON_AND_SERIES_FMT = '''
-SELECT ?episode ?season ?seasonNumber ?episodeNumber WHERE {{
+SELECT ?episode ?season ?seasonNumber ?episodeNumber ?seriesStatement WHERE {{
   ?episode wdt:P361 ?season
   OPTIONAL {{
     ?episode p:P179 ?seriesStatement .

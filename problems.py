@@ -179,7 +179,7 @@ def report_extra_queries(query_service, series_item):
                         )
                     )
         for value in values:
-            if value['seriesStatement']:
+            if value.get('seriesStatement'):
                 if not value['episodeNumber']:
                     report_items.append(
                         (
