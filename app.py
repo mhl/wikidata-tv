@@ -18,10 +18,11 @@ from episodes import Episode, group_and_order_episodes, id_from_item_url
 REDIS_PREFIX = environ.get('REDIS_PREFIX', None)
 REDIS_URL = environ.get('REDIS_URL', 'redis://localhost')
 
-QUERY_CACHE_EXPIRY = 3 * 60 # 3 minutes
-ALL_SERIES_CACHE_EXPIRY = 24 * 60 * 60 # 1 day
+QUERY_CACHE_EXPIRY = 3 * 60  # 3 minutes
+ALL_SERIES_CACHE_EXPIRY = 24 * 60 * 60  # 1 day
 
 GOOGLE_ANALYTICS_PROPERTY_ID = environ.get('GOOGLE_ANALYTICS_PROPERTY_ID', '')
+
 
 def redis_key(key):
     if not REDIS_PREFIX:
@@ -150,6 +151,7 @@ def homepage():
         title='Home',
     )
 
+
 @app.route('/about')
 def about():
     return render_template(
@@ -205,6 +207,7 @@ def get_episodes_multiseason(query_service, wikidata_item):
     )
     return parse_episodes(results['results']['bindings'])
 
+
 def get_episodes_singleseason(query_service, wikidata_item):
     query = queries.SINGLE_SEASON_QUERY_FMT.format(item=wikidata_item)
     results = query_service.run_query(
@@ -212,6 +215,7 @@ def get_episodes_singleseason(query_service, wikidata_item):
         'Getting episodes of {0} assuming single-season modelling'.format(wikidata_item)
     )
     return parse_episodes(results['results']['bindings'])
+
 
 @app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
 def random_episode(wikidata_item):
@@ -224,7 +228,9 @@ def random_episode(wikidata_item):
         'Checking that {0} is really a television series'.format(wikidata_item)
     )
     if not results['boolean']:
-        return "{0} did not seem to be a television series (an 'instance of' (P31) Q5398426 or something which is a 'subclass of' (P279) Q5398426)".format(wikidata_item)
+        return '''{0} did not seem to be a television series (an 'instance of'
+                  (P31) Q5398426 or something which is a 'subclass of' (P279)
+                  Q5398426)'''.format(wikidata_item)
     # Now get all episodes of that show, assuming it has the
     # multi-season structure:
     uses_single_season_modelling = False
@@ -264,6 +270,7 @@ def random_episode(wikidata_item):
         queries_used=query_service.queries,
         title=episodes[0].series_name,
     )
+
 
 if __name__ == "__main__":
     app.run()

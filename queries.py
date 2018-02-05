@@ -1,5 +1,7 @@
 MULTI_SEASON_QUERY_FMT = '''
-SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?numberInSeason ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
+SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?numberInSeason
+       ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode
+       ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{item} as ?series) .
   ?episode wdt:P361 ?season .
   ?episode wdt:P31/wdt:P279* wd:Q21191270 .
@@ -41,7 +43,9 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?numberInSeason ?seas
     ORDER BY xsd:integer(?seasonNumber) xsd:integer(?episodeNumber) ?productionCode'''
 
 SINGLE_SEASON_QUERY_FMT = '''
-SELECT ?episodeLabel ?episode ?series ?seriesLabel ?episodeNumber ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
+SELECT ?episodeLabel ?episode ?series ?seriesLabel ?episodeNumber
+       ?productionCode ?previousEpisode ?nextEpisode ?episodesInSeason
+       ?totalSeasons WHERE {{
   BIND(wd:{item} as ?series) .
   ?episode p:P179 ?episodeSeriesStatement .
   ?episode wdt:P31/wdt:P279* wd:Q21191270 .

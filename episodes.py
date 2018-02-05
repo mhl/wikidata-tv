@@ -40,7 +40,7 @@ class Episode(object):
             self.season_label = None
         self.episode_number_in_season = int_if_present(binding, 'numberInSeason')
         self.episode_number = int_if_present(binding, 'episodeNumber')
-        self.production_code = str_if_present(binding,'productionCode')
+        self.production_code = str_if_present(binding, 'productionCode')
         self.previous_episode_item = id_if_present(binding, 'previousEpisode')
         self.previous_episode = None
         self.next_episode_item = id_if_present(binding, 'nextEpisode')
@@ -103,12 +103,16 @@ def group_and_order_episodes(episodes):
             last_episodes.append(episode)
     first_or_last_problems = []
     if len(first_episodes) == 0:
-        first_or_last_problems.append('There was no first episode found (in the sense that it has no \'follows\' but does have a \'followed by\'')
+        first_or_last_problems.append(
+            '''There was no first episode found (in the sense that it has no
+               \'follows\' but does have a \'followed by\'''')
     elif len(first_episodes) > 1:
         fmt = 'More than one episode had a \'followed by\' but no \'follows\': {0}'
         first_or_last_problems.append(fmt.format(', '.join(e.label_with_item for e in first_episodes)))
     if len(last_episodes) == 0:
-        first_or_last_problems.append('There was no last episode found (in the sense that it has no \'followed by\' but does have a \'follows\'')
+        first_or_last_problems.append(
+            '''There was no last episode found (in the sense that it has no
+               \'followed by\' but does have a \'follows\'''')
     elif len(last_episodes) > 1:
         fmt = 'More than one episode had a \'follows\' but no \'followed by\': {0}'
         first_or_last_problems.append(fmt.format(', '.join(e.label_with_item for e in last_episodes)))
