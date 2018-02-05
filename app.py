@@ -161,6 +161,30 @@ def about():
     )
 
 
+@app.route('/search', methods=['POST'])
+def search():
+    if 'q' not in request.form:
+        raise Exception("Missing the search parameter")
+    query_service = WikidataQueryService()
+    escaped_query = re.sub(r'\\', r'\\\\', re.escape(request.form['q']))
+    results = query_service.run_query(
+        queries.NAME_SUBSTRING_SEARCH.format(re_quoted_substring=escaped_query),
+        'Find TV series matching a substring'
+    )
+    items_with_labels = [
+        (id_from_item_url(r['series']['value']), r['nameWithoutLang']['value'])
+        for r in results['results']['bindings']
+    ]
+    return render_template(
+        'search-results.html',
+        query=request.form['q'],
+        google_analytics_property_id=GOOGLE_ANALYTICS_PROPERTY_ID,
+        items_with_labels=items_with_labels,
+        queries_used=query_service.queries,
+        title='Search results',
+    )
+
+
 def slow_get_all_series():
     sparql = SPARQLWrapper('https://query.wikidata.org/sparql')
     sparql.setReturnFormat(JSON)

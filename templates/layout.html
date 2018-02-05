@@ -27,24 +27,28 @@
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light mb-4" style="background-color: #e3f2fd;">
-        <a class="nav-brand" href="{{ url_for('homepage') }}">Home</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
+               <a class="nav-link" href="{{ url_for('homepage') }}">Home</a>
             </li>
             <li class="nav-item">
                <a class="nav-link" href="{{ url_for('all_series') }}">All series</a>
-            </liv>
-          </ul>
-          <ul class="navbar-nav">
+            </li>
             <li class="nav-item active">
                <a class="nav-link" href="{{ url_for('about') }}">About</a>
-            </liv>
+            </li>
+          </ul>
+          <ul class="navbar-nav">
           </ul>
         </div>
+        <button class="navbar-toggler mb-2" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <form class="input-group float-right" action="{{ url_for('search') }}" method="post">
+          <input class="form-control" name="q" type="text" placeholder="Search">
+          <button class="input-group-addon my-2 my-sm-0" type="submit">Search</button>
+        </form>
       </nav>
       {% block body %}{% endblock %}
     </div>

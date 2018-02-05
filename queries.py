@@ -120,3 +120,12 @@ ALL_TV_SERIES = '''SELECT DISTINCT ?series ?seriesLabel WHERE {
   # ORDER BY ?seriesLabel
 '''
 
+NAME_SUBSTRING_SEARCH = '''
+SELECT DISTINCT ?series ?nameWithoutLang (group_concat(?lang;separator=",") as ?langs) WHERE {{
+  ?series wdt:P31/wdt:P279* wd:Q5398426 .
+  ?series rdfs:label ?name .
+  FILTER regex(?name, "{re_quoted_substring}", "i") .
+  BIND(LANG(?name) AS ?lang)
+  BIND(STR(?name) AS ?nameWithoutLang)
+}} GROUP BY ?series ?nameWithoutLang ORDER BY ?nameWithoutLang
+'''

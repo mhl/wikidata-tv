@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<h2>Search results for &lsquo;{{ query }}&rsquo;</h2>
+
+{% if items_with_labels %}
+  <p>{{ items_with_labels|length }} results found:</p>
+  <ul>
+  {% for item, label in items_with_labels %}
+    <li><a href="{{ url_for('random_episode', wikidata_item=item) }}">{{ label }}</a></li>
+  {% endfor %}
+  </ul>
+{% else %}
+  <p>No television series matching &lsquo;{{ query }}&rsquo; were found.</p>
+{% endif %}
+
+<hr>
+
+{% include 'all-episodes-query.html' %}
+
+{% endblock %}
