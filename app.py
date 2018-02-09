@@ -10,6 +10,7 @@ import re
 from flask import Flask, redirect, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
+from raven.contrib.flask import Sentry
 
 import problems
 import queries
@@ -42,7 +43,7 @@ redis_api = redis.StrictRedis.from_url(REDIS_URL, db=0)
 
 
 app = Flask(__name__)
-
+Sentry(app)
 
 @app.before_request
 def before_request():
