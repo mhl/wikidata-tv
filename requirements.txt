@@ -1,4 +1,5 @@
 Flask==0.12.2
 SPARQLWrapper==1.8.0
 gunicorn==19.7.1
+raven==6.5.0
 redis==2.10.6
