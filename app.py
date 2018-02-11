@@ -137,6 +137,7 @@ def homepage():
                  ('Q2744', 'The X-Files'),
                  ('Q11622', 'Firefly'),
                  ('Q22908690', 'The Good Place'),
+                 ('Q13417244', 'Brooklyn Nine-Nine'),
              ]),
             ('Data that could be improved',
              [
@@ -144,7 +145,6 @@ def homepage():
              ]),
             ('Low quality data - lots to do',
              [
-                 ('Q13417244', 'Brooklyn Nine-Nine'),
                  ('Q11598', 'Arrested Development'),
                  ('Q5902', 'Red Dwarf'),
              ]),
