@@ -7,7 +7,7 @@ import random
 import redis
 import re
 
-from flask import Flask, redirect, render_template, request
+from flask import Flask, abort, redirect, render_template, request
 from jinja2 import Markup
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 from raven.contrib.flask import Sentry
@@ -244,6 +244,8 @@ def get_episodes_singleseason(query_service, wikidata_item):
 
 @app.route('/series/<wikidata_item>', methods=['GET', 'POST'])
 def random_episode(wikidata_item):
+    if not re.search('^Q\d+$', wikidata_item):
+        abort(404)
     purge_cache = (request.method == 'POST') and (request.form.get('purge') == 'yes')
     query_service = WikidataQueryService(purge_cache)
     # First check that the item we have actually is an instance of a
