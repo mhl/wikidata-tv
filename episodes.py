@@ -39,7 +39,7 @@ class Episode(object):
             self.season_number = 1
             self.season_label = None
         self.episode_number_in_season = int_if_present(binding, 'numberInSeason')
-        self.episode_number = int_if_present(binding, 'episodeNumber')
+        self.episode_number = str_if_present(binding, 'episodeNumber')
         self.production_code = str_if_present(binding, 'productionCode')
         self.previous_episode_item = id_if_present(binding, 'previousEpisode')
         self.previous_episode = None
