@@ -3,7 +3,9 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?numberInSeason
        ?seasonNumber ?seasonLabel ?episodeNumber ?productionCode
        ?previousEpisode ?nextEpisode ?episodesInSeason ?totalSeasons WHERE {{
   BIND(wd:{item} as ?series) .
-  ?episode wdt:P361 ?season .
+  ?episode p:P4908 ?episodePartOfSeasonStatement .
+  ?episodePartOfSeasonStatement ps:P4908 ?season .
+
   ?episode wdt:P31/wdt:P279* wd:Q21191270 .
   ?episode p:P179 ?episodePartOfSeriesStatement .
   ?episodePartOfSeriesStatement ps:P179 ?series .
@@ -11,9 +13,7 @@ SELECT ?episodeLabel ?episode ?series ?seriesLabel ?season ?numberInSeason
   ?season p:P179 ?seriesStatement .
   ?seriesStatement ps:P179 ?series .
   OPTIONAL {{
-    ?episode p:P179 ?episodeSeriesToSeason .
-    ?episodeSeriesToSeason ps:P179 ?season .
-    ?episodeSeriesToSeason pq:P1545 ?numberInSeason
+    ?episodePartOfSeasonStatement pq:P1545 ?numberInSeason
   }}
   OPTIONAL {{
     ?seriesStatement pq:P1545 ?seasonNumber .
